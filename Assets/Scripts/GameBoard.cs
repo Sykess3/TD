@@ -8,7 +8,8 @@ public class GameBoard : MonoBehaviour
     [SerializeField] private GameTile _tilePrefab;
     [SerializeField] private Vector2Int _size;
     [SerializeField] private GameTileContentFactory _tileContentFactory;
-    
+
+    private GameTileContentSwitch _gameTileContentSwitch;
     private GameTile[] _tiles;
     private readonly Queue<GameTile> _searchFrontier = new Queue<GameTile>();
     private readonly List<GameTile> _spawnPoints = new List<GameTile>();
@@ -46,6 +47,8 @@ public class GameBoard : MonoBehaviour
         }
 
         SpawnPoints = _spawnPoints.AsReadOnly();
+
+        _gameTileContentSwitch = new GameTileContentSwitch(_tileContentFactory, TryFindPathes);
         
         ToggleDestination(_tiles[(int)(_size.x * _size.y * 0.5)]);
         ToggleSpawnPoint(_tiles[0]);
@@ -75,78 +78,14 @@ public class GameBoard : MonoBehaviour
 
         return null;
     }
-    
-    public void ToggleDestination(GameTile tile)
-    {
-        if (tile.Content.Type == GameTileContentType.Empty)
-        {
-            SetContentTo(GameTileContentType.Destination, tile);
-        }
-        else if(tile.Content.Type == GameTileContentType.Destination)
-        {
-            if (tile.Content.Type == GameTileContentType.SpawnPoint)
-            {
-                return;
-            }
-            if (!TrySetContentTo(GameTileContentType.Empty, tile))
-            {
-                SetContentTo(GameTileContentType.Destination, tile);
-            }
 
-        }
-    }
+    public void ToggleDestination(GameTile tile) => _gameTileContentSwitch.ToggleDestination(tile);
 
-    public void ToggleTower(GameTile tile)
-    {
-        if (tile.Content.Type == GameTileContentType.Tower)
-        {
-            _contentToUpdate.Remove(tile.Content as IUpdatableGameTileContent);
-            SetContentTo(GameTileContentType.Empty, tile);
-        }
-        else if (tile.Content.Type == GameTileContentType.Empty)
-        {
-            if (TrySetContentTo(GameTileContentType.Tower, tile))
-            {
-                _contentToUpdate.Add(tile.Content as IUpdatableGameTileContent);
-            }
-            else
-            {
-                SetContentTo(GameTileContentType.Empty, tile);
-            }
-                
-        }
-        else
-        {
-            tile.Content = _tileContentFactory.Get(GameTileContentType.Tower);
-            _contentToUpdate.Add(tile.Content as IUpdatableGameTileContent);
-        }
-    }
-    
-    public void ToggleWall(GameTile tile)
-    {
-        if (tile.Content.Type == GameTileContentType.Wall)
-            SetContentTo(GameTileContentType.Empty, tile);
-        else if (tile.Content.Type == GameTileContentType.Empty)
-            if (!TrySetContentTo(GameTileContentType.Wall, tile))
-                SetContentTo(GameTileContentType.Empty, tile);
-    }
+    public void ToggleTower(GameTile tile) => _gameTileContentSwitch.ToggleTower(tile, _contentToUpdate);
 
-    public void ToggleSpawnPoint(GameTile tile)
-    {
-        if (tile.Content.Type == GameTileContentType.SpawnPoint)
-        {
-            if (_spawnPoints.Count > 1)
-            {
-                tile.Content = _tileContentFactory.Get(GameTileContentType.Empty);
-                _spawnPoints.Remove(tile);
-            }
-        }
-        else if(tile.Content.Type == GameTileContentType.Empty)
-        {
-            tile.Content = _tileContentFactory.Get(GameTileContentType.SpawnPoint);
-            _spawnPoints.Add(tile);
-        }
-    }
+    public void ToggleWall(GameTile tile) => _gameTileContentSwitch.ToggleWall(tile);
+
+    public void ToggleSpawnPoint(GameTile tile) => _gameTileContentSwitch.ToggleSpawnPoint(tile, _spawnPoints);
 
     private bool TryFindPathes()
     {
@@ -199,15 +138,96 @@ public class GameBoard : MonoBehaviour
         return true;
     }
 
+}
+
+class GameTileContentSwitch
+{
+    private Func<bool> ContentChanged;
+
+    private GameTileContentFactory _factory;
+    public GameTileContentSwitch(GameTileContentFactory factory, Func<bool> contentChangedCallback)
+    {
+        _factory = factory;
+        if (contentChangedCallback == null)
+            throw new ArgumentException("Set correct contentChangedCallback, it can`t be null");
+        ContentChanged = contentChangedCallback;
+    }
+    
+    public void ToggleDestination(GameTile tile)
+    {
+        if (tile.Content.Type == GameTileContentType.Empty)
+        {
+            SetContentTo(GameTileContentType.Destination, tile);
+        }
+        else if(tile.Content.Type == GameTileContentType.Destination)
+        {
+            if (!TrySetContentTo(GameTileContentType.Empty, tile))
+            {
+                SetContentTo(GameTileContentType.Destination, tile);
+            }
+
+        }
+    }
+    
+
+    public void ToggleTower(GameTile tile, List<IUpdatableGameTileContent> contentToUpdate)
+    {
+        if (tile.Content.Type == GameTileContentType.Tower)
+        {
+            contentToUpdate.Remove(tile.Content as IUpdatableGameTileContent);
+            SetContentTo(GameTileContentType.Empty, tile);
+        }
+        else if (tile.Content.Type == GameTileContentType.Empty)
+        {
+            if (TrySetContentTo(GameTileContentType.Tower, tile))
+            {
+                contentToUpdate.Add(tile.Content as IUpdatableGameTileContent);
+            }
+            else
+            {
+                SetContentTo(GameTileContentType.Empty, tile);
+            }
+                
+        }
+        else
+        {
+            tile.Content = _factory.Get(GameTileContentType.Tower);
+            contentToUpdate.Add(tile.Content as IUpdatableGameTileContent);
+        }
+    }
+    
+    public void ToggleWall(GameTile tile)
+    {
+        if (tile.Content.Type == GameTileContentType.Wall)
+            SetContentTo(GameTileContentType.Empty, tile);
+        else if (tile.Content.Type == GameTileContentType.Empty)
+            if (!TrySetContentTo(GameTileContentType.Wall, tile))
+                SetContentTo(GameTileContentType.Empty, tile);
+    }
+    public void ToggleSpawnPoint(GameTile tile, List<GameTile> spawnPoints)
+    {
+        if (tile.Content.Type == GameTileContentType.SpawnPoint)
+        {
+            if (spawnPoints.Count > 1)
+            {
+                tile.Content = _factory.Get(GameTileContentType.Empty);
+                spawnPoints.Remove(tile);
+            }
+        }
+        else if(tile.Content.Type == GameTileContentType.Empty)
+        {
+            tile.Content = _factory.Get(GameTileContentType.SpawnPoint);
+            spawnPoints.Add(tile);
+        }
+    }
     private bool TrySetContentTo(GameTileContentType type, GameTile tile)
     {
-        tile.Content = _tileContentFactory.Get(type);
-        return TryFindPathes();
+        tile.Content = _factory.Get(type);
+        return ContentChanged();
     }
 
     private void SetContentTo(GameTileContentType type, GameTile tile)
     {
         TrySetContentTo(type, tile);
     }
-    
 }

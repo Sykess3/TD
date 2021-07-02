@@ -23,7 +23,6 @@ public class Tower : GameTileContent, IUpdatableGameTileContent
     private void Awake()
     {
         _laserBeamScale = _laserBeam.localScale;
-        Debug.Log(_laserBeamScale);
     }
 
     public void UpdateContent()
@@ -88,3 +87,4 @@ public class Tower : GameTileContent, IUpdatableGameTileContent
         Gizmos.DrawWireSphere(position, _targetingRange);
     }
 }
+
