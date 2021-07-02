@@ -1,5 +1,4 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -7,23 +6,21 @@ public class GameBoard : MonoBehaviour
 {
     [SerializeField] private Transform _ground;
     [SerializeField] private GameTile _tilePrefab;
-    
     [SerializeField] private Vector2Int _size;
     [SerializeField] private GameTileContentFactory _tileContentFactory;
     
     private GameTile[] _tiles;
-    private Queue<GameTile> _searchFrontier;
+    private readonly Queue<GameTile> _searchFrontier = new Queue<GameTile>();
+    private readonly List<GameTile> _spawnPoints = new List<GameTile>();
 
-    private List<GameTile> _spawnPoints;
+    private readonly List<IUpdatableGameTileContent> _contentToUpdate =
+        new List<IUpdatableGameTileContent>();
 
-    private void OnEnable()
+    public IReadOnlyList<GameTile> SpawnPoints { get; private set; }
+    
+    private void Start()
     {
         transform.position = Vector3.zero;
-        Init();
-    }
-
-    private void Init()
-    {
         _ground.localScale = new Vector3(_size.x, _size.y, 1);
         _tiles = new GameTile[_size.x * _size.y];
 
@@ -48,16 +45,24 @@ public class GameBoard : MonoBehaviour
             }
         }
 
-        _searchFrontier = new Queue<GameTile>();
-        _spawnPoints = new List<GameTile>();
+        SpawnPoints = _spawnPoints.AsReadOnly();
         
         ToggleDestination(_tiles[(int)(_size.x * _size.y * 0.5)]);
         ToggleSpawnPoint(_tiles[0]);
     }
 
+    private void Update()
+    {
+        for (int i = 0; i < _contentToUpdate.Count; i++)
+        {
+            _contentToUpdate[i].UpdateContent();
+        }
+    }
+
+
     public GameTile GetTile(Ray ray)
     {
-        if (Physics.Raycast(ray, out RaycastHit hit))
+        if (Physics.Raycast(ray, out RaycastHit hit, float.MaxValue, 1))
         {
             int x = (int)(hit.point.x + _size.x * 0.5);
             int y = (int)(hit.point.z + _size.y * 0.5);
@@ -70,17 +75,53 @@ public class GameBoard : MonoBehaviour
 
         return null;
     }
-
+    
     public void ToggleDestination(GameTile tile)
     {
         if (tile.Content.Type == GameTileContentType.Empty)
+        {
             SetContentTo(GameTileContentType.Destination, tile);
-        
-        else 
+        }
+        else if(tile.Content.Type == GameTileContentType.Destination)
+        {
+            if (tile.Content.Type == GameTileContentType.SpawnPoint)
+            {
+                return;
+            }
             if (!TrySetContentTo(GameTileContentType.Empty, tile))
+            {
                 SetContentTo(GameTileContentType.Destination, tile);
+            }
+
+        }
     }
 
+    public void ToggleTower(GameTile tile)
+    {
+        if (tile.Content.Type == GameTileContentType.Tower)
+        {
+            _contentToUpdate.Remove(tile.Content as IUpdatableGameTileContent);
+            SetContentTo(GameTileContentType.Empty, tile);
+        }
+        else if (tile.Content.Type == GameTileContentType.Empty)
+        {
+            if (TrySetContentTo(GameTileContentType.Tower, tile))
+            {
+                _contentToUpdate.Add(tile.Content as IUpdatableGameTileContent);
+            }
+            else
+            {
+                SetContentTo(GameTileContentType.Empty, tile);
+            }
+                
+        }
+        else
+        {
+            tile.Content = _tileContentFactory.Get(GameTileContentType.Tower);
+            _contentToUpdate.Add(tile.Content as IUpdatableGameTileContent);
+        }
+    }
+    
     public void ToggleWall(GameTile tile)
     {
         if (tile.Content.Type == GameTileContentType.Wall)

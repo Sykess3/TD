@@ -1,5 +1,3 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -10,6 +8,7 @@ public class GameTileContentFactory : GameObjectFactory
     [SerializeField] private GameTileContent _destinationPrefab;
     [SerializeField] private GameTileContent _wallPrefab;
     [SerializeField] private GameTileContent _spawnPointPrefab;
+    [SerializeField] private Tower _towerPrefab;
 
     private Scene _contentScene;
 
@@ -30,6 +29,8 @@ public class GameTileContentFactory : GameObjectFactory
                 return InternalGet(_wallPrefab);
             case GameTileContentType.SpawnPoint:
                 return InternalGet(_spawnPointPrefab);
+            case GameTileContentType.Tower:
+                return InternalGet(_towerPrefab);
         }
         return null;
     }
@@ -37,7 +38,7 @@ public class GameTileContentFactory : GameObjectFactory
     private GameTileContent InternalGet(GameTileContent prefab)
     {
         var instance = CreateGameObjectInstance(prefab);
-        instance.OriginFactory = this;
+        instance.Init(this);
         return instance;
     }
     

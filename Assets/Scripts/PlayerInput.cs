@@ -1,6 +1,3 @@
-using System;
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class PlayerInput : MonoBehaviour
@@ -8,7 +5,6 @@ public class PlayerInput : MonoBehaviour
     [SerializeField] private Camera _mainCamera;
     [SerializeField] private GameBoard _board;
     [SerializeField] private GameTileContentFactory _tileContentFactory;
-    
 
     private TileContentChanger _contentChanger;
     
@@ -21,17 +17,19 @@ public class PlayerInput : MonoBehaviour
     {
         if (Input.GetMouseButtonDown(0))
         {
-            _contentChanger.ToggleDestination();
+            if (Input.GetKey(KeyCode.LeftShift))
+                _contentChanger.ToggleSpawnPoint();
+            else
+                _contentChanger.ToggleDestination();
         }
 
         if (Input.GetMouseButtonDown(1))
         {
-            _contentChanger.ToggleWall();
+            if (Input.GetKey(KeyCode.LeftShift))
+                _contentChanger.ToggleTower();
+            else
+                _contentChanger.ToggleWall();
         }
-
-        if (Input.GetKeyDown(KeyCode.LeftShift))
-        {
-            _contentChanger.ToggleSpawnPoint();
-        }
+        
     }
 }

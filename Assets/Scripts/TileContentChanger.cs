@@ -1,5 +1,3 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class TileContentChanger
@@ -8,7 +6,7 @@ public class TileContentChanger
     private readonly Camera _mainCamera;
     private readonly GameTileContentFactory _tileContentFactory;
 
-    public Ray TouchRay =>  _mainCamera.ScreenPointToRay(Input.mousePosition);
+    private Ray TouchRay =>  _mainCamera.ScreenPointToRay(Input.mousePosition);
     
     
     public TileContentChanger(GameBoard gameBoard, Camera mainCamera, GameTileContentFactory tileContentFactory)
@@ -25,6 +23,13 @@ public class TileContentChanger
             _gameBoard.ToggleDestination(tile);
     }
 
+    public void ToggleTower()
+    {
+        GameTile tile = _gameBoard.GetTile(TouchRay);
+        if (tile != null)
+            _gameBoard.ToggleTower(tile);
+    }
+    
     public void ToggleWall()
     {
         GameTile tile = _gameBoard.GetTile(TouchRay);

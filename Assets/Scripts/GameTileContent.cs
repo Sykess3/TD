@@ -1,19 +1,25 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
+[SelectionBase]
 public class GameTileContent : MonoBehaviour
 {
     [SerializeField] private GameTileContentType _type;
 
-    public GameTileContentType Type => _type;
+    private GameTileContentFactory _originFactory;
 
-    public GameTileContentFactory OriginFactory { get; set; }
+    public GameTileContentType Type => _type;
+    public bool IsBlockingPath => Type == GameTileContentType.Tower || Type == GameTileContentType.Wall;
+
+    public void Init(GameTileContentFactory originFactory)
+    {
+        _originFactory = originFactory;
+    }
 
     public void Recycle()
     {
-        OriginFactory.Reclaim(this);
+        _originFactory.Reclaim(this);
     }
+
 }
 
 public enum GameTileContentType
@@ -21,5 +27,6 @@ public enum GameTileContentType
     Empty,
     Destination,
     Wall,
-    SpawnPoint
+    SpawnPoint,
+    Tower
 }
