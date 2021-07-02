@@ -8,6 +8,19 @@ public class EnemyCollection
     public void Add(Enemy enemy)
     {
         _enemies.Add(enemy);
+        enemy.Dying += Remove;
+    }
+
+    public void RemoveAt(int index)
+    {
+        int lastIndex = _enemies.Count - 1;
+        _enemies[index] = _enemies[lastIndex];
+        _enemies.RemoveAt(lastIndex);
+    }
+
+    public void Remove(Enemy enemy)
+    {
+        _enemies.Remove(enemy);
     }
 
     public void MoveAll()
@@ -16,11 +29,10 @@ public class EnemyCollection
         {
             if (!_enemies[i].TryMove())
             {
-                int lastIndex = _enemies.Count - 1;
-                _enemies[i] = _enemies[lastIndex];
-                _enemies.RemoveAt(lastIndex);
-                i -= 1;
+                RemoveAt(i);
+                i--;
             }
         }
     }
+    
 }

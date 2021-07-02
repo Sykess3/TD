@@ -19,7 +19,7 @@ public class Enemy : MonoBehaviour
 
     public float Scale { get; private set; }
     public float Health { get; private set; }
-    
+    public event Action<Enemy> Dying; 
     public void Init(float scale, float speed, EnemyFactory originFactory, float offset)
     {
         _model.localScale = new Vector3(scale, scale, scale);
@@ -37,6 +37,12 @@ public class Enemy : MonoBehaviour
 
     public void TakeDamage(float amount)
     {
+        if (amount >= Health)
+        {
+            Dying?.Invoke(this);
+            Recycle();
+        }
+        
         Health -= amount;
     }
     public void SpawnOn(GameTile tile)
@@ -49,17 +55,12 @@ public class Enemy : MonoBehaviour
 
     public bool TryMove()
     {
-        if (Health <= 0f)
-        {
-            _originFactory.Reclaim(this);
-            return false;
-        }
         _progress += Time.deltaTime * _progressFactor;
         while (_progress >= 1)
         {
             if (_tileTo == null)
             {
-                _originFactory.Reclaim(this);
+                Recycle();
                 return false;
             }
             _progress = (_progress - 1) / _progressFactor;
@@ -81,6 +82,7 @@ public class Enemy : MonoBehaviour
         return true;
     }
 
+    #region StateMachine
     private void PrepareIntro()
     {
         _positionFrom = _tileFrom.transform.position;
@@ -163,6 +165,8 @@ public class Enemy : MonoBehaviour
         _model.localPosition = new Vector3(_pathOffset, 0f);
         transform.localPosition = _positionFrom;
         _progressFactor = _speed / (Mathf.PI * Mathf.Max(Mathf.Abs(_pathOffset), 0.2f));
-    }
-    
+    }    
+
+    #endregion
+
 }
